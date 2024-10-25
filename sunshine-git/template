@@ -1,0 +1,53 @@
+# Template file for 'sunshine'
+pkgname=sunshine-git
+version=0.23.1.dirty
+revision=1
+archs="x86_64"
+#build_wrksrc=
+build_style=gnu-configure
+#configure_args=""
+#make_build_args=""
+#make_install_args=""
+#conf_files=""
+#make_dirs="/var/log/dir 0755 root root"
+hostmakedepends="cmake git"
+makedepends="python3.11 boost-devel openssl-devel pkg-config libcurl-devel miniupnpc-devel libayatana-appindicator libayatana-appindicator-devel libboost_locale libboost_log libboost_program_options libcap-devel libcurl-devel libdrm-devel libevdev-devel libnotify-devel libnuma-devel libopusenc-devel pulseaudio-devel libssl3 libva-devel libvdpau-devel libwaylandpp-devel wayland-devel libX11-devel libxcb-devel libXfixes-devel libXrandr-devel libXtst-devel nodejs pnpm"
+depends=""
+short_desc="Self-hosted game stream host for Moonlight."
+maintainer="Airgeadlamh <eduaraguia@gmail.com>"
+license="GPL-3.0-or-later"
+homepage="https://github.com/lizardbyte/sunshine"
+#changelog=""
+#distfiles=""
+#checksum=
+
+do_fetch() {
+    git clone https://github.com/lizardbyte/sunshine.git "$wrksrc"
+}
+
+post_fetch() {
+	cd $wrksrc
+	git submodule update --init --recursive
+}
+
+do_configure() {
+    vsed -i 's@install(FILES "${CMAKE_CURRENT_BINARY_DIR}/sunshine.service"@@g' cmake/packaging/linux.cmake
+    vsed -i 's@DESTINATION "${SUNSHINE_ASSETS_DIR}/systemd/user")@@g' cmake/packaging/linux.cmake
+    vsed -i 's@DESTINATION "${SYSTEMD_USER_UNIT_INSTALL_DIR}")@@g' cmake/packaging/linux.cmake
+    vsed -i 's@find_package(Systemd)@@g' cmake/packaging/linux.cmake
+    mkdir -p build
+    cd build
+    cmake -DCMAKE_INSTALL_PREFIX=/usr ..
+}
+
+do_build() {
+    cd build
+    vsed -i 's@-lmfx@@g' CMakeFiles/sunshine.dir/link.txt
+    vsed -i 's@-lmfx@@g' tests/CMakeFiles/test_sunshine.dir/link.txt
+    make -j ${nproc}
+}
+
+do_install() {
+    cd build
+    make DESTDIR="$DESTDIR" install
+}
